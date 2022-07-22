@@ -46,12 +46,29 @@ router.get('/about', (req, res) => {
 
 router.get('/goods', (req, res) => {
 	res.json({goods:goods})
+    // 키벨류 값이 같으면
+    // res.json({goods:goods}) 로 작성가능
 });
+
+// router.get("/goods/:goodsId", (req, res) => {
+//     const goodsId = req.params.goodsId;
+
+//     // console.log(goodsId)
+//     // res.send(`goodsId : ${goodsId}`)
+
+//     const filterdItem = goods.filter(item => {
+//         return item.goodsId === parseInt(goodsId);
+//     })
+
+//     res.json({
+//         detail : filterdItem[0]
+//     }); 
+// });
 
 router.get('/goods/:goodsId', (req, res) => {
     const {goodsId} = req.params
-    const [detail] = goods.filter((goods) => goods.goodsId === Number(goodsId))
-    res.json({detail})
+    const [detail] = goods.filter((item) => item.goodsId === Number(goodsId))
+    res.json({detail:detail})
 });
 
 module.exports = router;
