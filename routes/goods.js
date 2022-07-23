@@ -43,7 +43,7 @@ router.get("/goods/cart", async (req,res)=>{
     const goods = await Goods.find({goodsId: goodsIds})
     
     res.json({
-        carts:carts.map(cart =>{
+        cart:carts.map(cart =>{
             return{
                 quantity: cart.quantity,
                 goods: goods.find(item=>{
@@ -54,27 +54,30 @@ router.get("/goods/cart", async (req,res)=>{
     })
 })
 
+// 제품 상세조회
 router.get('/goods/:goodsId', async (req, res) => {
     const {goodsId} = req.params
 
     const [detail] = await Goods.find({ goodsId: Number(goodsId) })
 
     // const [detail] = goods.filter((item) => item.goodsId === Number(goodsId))
-    res.json({detail:detail})
+    res.json({goods:detail})
 });
 
-router.post("/goods/:goodsId/cart", async (req,res)=>{
-    const {goodsId} = req.params
-    const {quantity} = req.body
+// 상품 장바구니에 담기(원래 상품담기인데 put 으로 통일함)
+// router.post("/goods/:goodsId/cart", async (req,res)=>{
+//     const {goodsId} = req.params
+//     const {quantity} = req.body
 
-    const existcarts = await Cart.find({goodsId: Number(goodsId)})
-    if(existcarts.length){
-        return res.status(400).json({success: false, errMsg:"이미 장바구니에 상품이 들어있습니다."})
-    }
-    await Cart.create({ goodsId:Number(goodsId), quantity})
-    res.json({success:true})  
-})
+//     const existcarts = await Cart.find({goodsId: Number(goodsId)})
+//     if(existcarts.length){
+//         return res.status(400).json({success: false, errMsg:"이미 장바구니에 상품이 들어있습니다."})
+//     }
+//     await Cart.create({ goodsId:Number(goodsId), quantity})
+//     res.json({success:true})  
+// })
 
+// 장바구니에서 제품 삭제
 router.delete("/goods/:goodsId/cart", async (req,res)=>{
     const {goodsId} = req.params
 
@@ -85,6 +88,7 @@ router.delete("/goods/:goodsId/cart", async (req,res)=>{
     res.json({success:true})  
 })
 
+// 장바구니 제품 수정
 router.put("/goods/:goodsId/cart", async (req,res)=>{
     const {goodsId} = req.params
     const {quantity} = req.body
@@ -95,9 +99,12 @@ router.put("/goods/:goodsId/cart", async (req,res)=>{
 
     const existcarts = await Cart.find({goodsId: Number(goodsId)})
     if(!existcarts.length){
-        return res.status(400).json({success: false, errMsg:"장바구니에 해당 상품이 없습니다."})
+        await Cart.create({ goodsId:Number(goodsId), quantity})
+        // return res.status(400).json({success: false, errMsg:"장바구니에 해당 상품이 없습니다."})
+    }else{
+        await Cart.updateOne({ goodsId:Number(goodsId) }, {$set: {quantity} })
     }
-    await Cart.updateOne({ goodsId:Number(goodsId) }, {$set: {quantity} })
+    
     res.json({success:true})
 })
 

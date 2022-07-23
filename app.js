@@ -18,9 +18,14 @@ const requstMiddleware = (req, res, next)=>{
     next()
 }
 
+// 정적파일(api요청이나 다름 값들로 바뀌는 게아닌 파일들)들을 가져와 서버에 적용
+app.use(express.static("static"))
+
 // body로 전달받은 json데이터는 바로 사용 불가능
 // json미들웨어를 통해 body로 들어오는 json을 파싱 해줌
 app.use(express.json())
+
+app.use(express.urlencoded())
 app.use(requstMiddleware)
 
 // /api 로 시작되는 주소는 routes/goods.js 에 있는 Router 미들웨어를 통해 처리
