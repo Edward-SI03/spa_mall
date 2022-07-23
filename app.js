@@ -25,8 +25,7 @@ app.use(requstMiddleware)
 
 // /api 로 시작되는 주소는 routes/goods.js 에 있는 Router 미들웨어를 통해 처리
 const goodsRouter = require("./routes/goods");
-const cartsRouter = require("./routes/carts")
-app.use("/api", [goodsRouter, cartsRouter]);
+app.use("/api", [goodsRouter]);
 
 
 

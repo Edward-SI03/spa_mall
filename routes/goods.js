@@ -36,6 +36,24 @@ router.get('/goods', async (req, res) => {
 //     }); 
 // });
 
+// 장바구니 상품보기
+router.get("/goods/cart", async (req,res)=>{
+    const carts = await Cart.find()
+    const goodsIds = carts.map(cart => cart.goodsId)
+    const goods = await Goods.find({goodsId: goodsIds})
+    
+    res.json({
+        carts:carts.map(cart =>{
+            return{
+                quantity: cart.quantity,
+                goods: goods.find(item=>{
+                    return item.goodsId === cart.goodsId
+                })
+            }
+        })
+    })
+})
+
 router.get('/goods/:goodsId', async (req, res) => {
     const {goodsId} = req.params
 
@@ -54,9 +72,35 @@ router.post("/goods/:goodsId/cart", async (req,res)=>{
         return res.status(400).json({success: false, errMsg:"이미 장바구니에 상품이 들어있습니다."})
     }
     await Cart.create({ goodsId:Number(goodsId), quantity})
-    res.json({success:true})
-    
+    res.json({success:true})  
 })
+
+router.delete("/goods/:goodsId/cart", async (req,res)=>{
+    const {goodsId} = req.params
+
+    const existcarts = await Cart.find({goodsId:Number(goodsId)})
+    if(existcarts.length){
+        await Cart.deleteOne({goodsId:Number(goodsId)})
+    }
+    res.json({success:true})  
+})
+
+router.put("/goods/:goodsId/cart", async (req,res)=>{
+    const {goodsId} = req.params
+    const {quantity} = req.body
+
+    if(quantity<1){
+        return res.status(400).json({success:false, errMsg:"수량은 1이상으로 설정해주세요."})
+    }
+
+    const existcarts = await Cart.find({goodsId: Number(goodsId)})
+    if(!existcarts.length){
+        return res.status(400).json({success: false, errMsg:"장바구니에 해당 상품이 없습니다."})
+    }
+    await Cart.updateOne({ goodsId:Number(goodsId) }, {$set: {quantity} })
+    res.json({success:true})
+})
+
 
 
 // POST 메소드의 특징은 GET 메소드와는 다르게 body 라는 추가적인 정보를 담아 서버에 전달 할 수 있기 때문에  

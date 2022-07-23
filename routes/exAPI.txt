@@ -1,0 +1,102 @@
+- 회원가입
+    - req
+        - post
+        - /user
+        - body: {userId: number, password: number, name:string}
+    -res
+        - 201
+        - payload: {token:string}[]
+- 로그인
+    - req
+        - post
+        - /login
+        - body: {userId: number, password: number}
+    -res
+        - 201
+        - payload: {token:string}[]
+- 회원정보수정
+    - req
+        - put/patch
+        - /user/:userId
+        - body: {userId: number, password: number, name:string}
+    -res
+        - 200
+        - payload: {msg:string}[]
+- 회원탈퇴
+    - req
+        - delete
+        - /user/:userId
+    -res
+        - 200
+        - payload: {msg:string}[]
+
+
+- 게시글 작성
+    - req
+        - post
+        - /post
+        - body: {content:string, userId: number}
+    -res
+        - 201
+        - payload: {postId: number,}[]
+- 게시글 보기
+    - req
+        - get
+        - /post
+    -res
+        - 200
+        - payload: {postId: number, content:string, userId: number}[]
+- 게시글 상세 보기
+    - req
+        - get
+        - /post/:postId
+    -res
+        - 200
+        - payload: {postId: number, content:string, userId: number}[]
+- 게시글 수정
+    - req
+        - put/patch
+        - /post/:postId
+        - body: {content:string}
+    -res
+        - 200
+        - payload: {msg:string}[]
+- 게시글 삭제
+    - req
+        - delete
+        - /post/:postId
+    -res
+        - 200
+        - payload: {msg:string}[]
+
+
+- 특정게시글 댓글 달기
+    - req
+        - post
+        - /post/:postId/comments
+        - body: {userId:number, comment:string}
+    -res
+        - 201
+        - payload: {commentId:number, comment:string}[]
+- 특정게시글 댓글 보기
+    - req
+        - get
+        - /post/:postId/comments
+    -res
+        - 200
+        - payload: {userId:number, commentId:number, comment:string}[]
+- 특정게시글 댓글 수정
+    - req
+        - put/patch
+        - /post/:postId/comments/:commentId
+        - body: {comment:string}
+    -res
+        - 200
+        - payload: {msg:string}[]
+- 특정기시글 댓글 삭제
+    - req
+        - delete
+        - /post/:postId/comments/:commentId
+    -res
+        - 200
+        - payload: {msg:string}[]
