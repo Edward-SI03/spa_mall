@@ -1,48 +1,75 @@
 const express = require("express");
 const router = express.Router();
 const jwt = require("jsonwebtoken");
+const Joi = require("joi");
 const User = require("../schemas/user");
 const authMiddleware = require("../middlewares/auth-middleware");
 
 // 회원가입
+const postUserSchema = Joi.object({
+  nickname: Joi.string().required(),
+  email: Joi.string().email().required(),
+  password: Joi.string().required(),
+  confirmPassword: Joi.string().required(),
+});
+
 router.post("/users", async (req, res) => {
-  const { nickname, email, password, confirmPassword } = req.body;
+  try {
+    const { nickname, email, password, confirmPassword } =
+      await postUserSchema.validateAsync(req.body);
 
-  if (password !== confirmPassword) {
-    res.status(400).send({ errorMessage: "패스워드가 일치 하지 않습니다." });
-    return;
+    if (password !== confirmPassword) {
+      res.status(400).send({ errorMessage: "패스워드가 일치 하지 않습니다." });
+      return;
+    }
+
+    const existUsers = await User.find({
+      $or: [{ nickname }, { email }],
+    });
+
+    if (existUsers.length) {
+      res
+        .status(400)
+        .send({ errorMessage: "이미 가입된 이메일 또는 닉네임이 있습니다." });
+      return;
+    }
+    const user = new User({ email, nickname, password });
+    await user.save();
+    res.status(201).send({});
+  } catch (err) {
+    console.log(err);
+    res.status(400).send({
+      errorMessage: "요청한 데이터 형식이 올바르지 않습니다.",
+    });
   }
-
-  const existUsers = await User.find({
-    $or: [{ nickname }, { email }],
-  });
-
-  if (existUsers.length) {
-    res
-      .status(400)
-      .send({ errorMessage: "이미 가입된 이메일 또는 닉네임이 있습니다." });
-    return;
-  }
-
-  const user = new User({ email, nickname, password });
-  await user.save();
-  res.status(201).send({});
 });
 
 // 로그인
+const postAuthSchema = Joi.object({
+  email: Joi.string().email().required(),
+  password: Joi.string().required(),
+});
 router.post("/auth", async (req, res) => {
-  const { email, password } = req.body;
+  try {
+    const { email, password } = await postAuthSchema.validateAsync(req.body);
 
-  const user = await User.findOne({ email, password });
-  if (!user) {
-    res.status(400).send({
-      errorMessage: "이메일 또는 비밀번호가 맞지 않습니다.",
-    });
-    return;
+    const user = await User.findOne({ email, password });
+
+    if (!user) {
+      res.status(400).send({
+        errorMessage: "이메일 또는 비밀번호가 맞지 않습니다.",
+      });
+      return;
+    }
+
+    const token = jwt.sign({ userId: user.userId }, "sparta");
+    res.send({ token });
+  } catch (err) {
+    console.log(err);
+    res
+      .status(400)
+      .send({ errorMessage: "요청한 데이터 형식이 올바르지 않습니다." });
   }
-
-  const token = jwt.sign({ userId: user.userId }, "sparta");
-  res.send({ token });
 });
 
 // 내 정보 조회(사용자 인증 미들웨어에서 인증된 값을 가져와서 로그인여부를 확인)

@@ -81,7 +81,7 @@ router.get("/goods/cart", authMiddleware, async (req, res) => {
 router.get("/goods/:goodsId", authMiddleware, async (req, res) => {
   const { goodsId } = req.params;
 
-  const [detail] = await Goods.find({ goodsId: goodsId });
+  const [detail] = await Goods.find({ _id: goodsId });
 
   // const [detail] = goods.filter((item) => item.goodsId === Number(goodsId))
   res.json({ goods: detail });
