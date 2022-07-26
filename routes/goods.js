@@ -2,16 +2,10 @@ const express = require("express");
 const router = express.Router();
 const Cart = require("../schemas/cart");
 const Goods = require("../schemas/goods");
+const authMiddleware = require("../middlewares/auth-middleware");
 
-// router.get('/', (req, res) => {
-// 	res.send('this is home page');
-// });
-
-// router.get('/about', (req, res) => {
-// 	res.send('this is about page');
-// });
-
-router.get("/goods", async (req, res) => {
+// 전체 상품 목록 보기
+router.get("/goods", authMiddleware, async (req, res) => {
   const { category } = req.query;
 
   const goods = await Goods.find({ category });
@@ -21,23 +15,53 @@ router.get("/goods", async (req, res) => {
 });
 
 // 장바구니 상품보기
-router.get("/goods/cart", async (req, res) => {
-  const carts = await Cart.find();
-  const goodsIds = carts.map((cart) => cart.goodsId);
-  const goods = await Goods.find({ goodsId: goodsIds });
+router.get("/goods/cart", authMiddleware, async (req, res) => {
+  const { userId } = res.locals.user;
+  const cart = await Cart.find({
+    userId,
+  }).exec();
 
-  res.json({
-    cart: carts.map((cart) => {
-      return {
-        quantity: cart.quantity,
-        goods: goods.find((item) => {
-          return item.goodsId === cart.goodsId;
+  const goodsIds = cart.map((c) => c.goodsId);
+
+  // 루프 줄이기 위해 Mapping 가능한 객체로 만든것
+  const goodsKeyById = await Goods.find({
+    _id: { $in: goodsIds },
+  })
+    .exec()
+    .then((goods) =>
+      goods.reduce(
+        (prev, g) => ({
+          ...prev,
+          [g.goodsId]: g,
         }),
-      };
-    }),
+        {}
+      )
+    );
+
+  res.send({
+    cart: cart.map((c) => ({
+      quantity: c.quantity,
+      goods: goodsKeyById[c.goodsId],
+    })),
   });
+
+  // const carts = await Cart.find(userId);
+  // const goodsIds = carts.map((cart) => cart.goodsId);
+  // const goods = await Goods.find({ goodsIds: goodsIds  });
+
+  // res.json({
+  //   cart: carts.map((cart) => {
+  //     return {
+  //       quantity: cart.quantity,
+  //       goods: goods.find((item) => {
+  //         return item.goodsId === cart.goodsId;
+  //       }),
+  //     };
+  //   }),
+  // });
 });
 
+// 제품 상세보기 구버전
 // router.get("/goods/:goodsId", (req, res) => {
 //     const goodsId = req.params.goodsId;
 
@@ -54,10 +78,10 @@ router.get("/goods/cart", async (req, res) => {
 // });
 
 // 제품 상세조회
-router.get("/goods/:goodsId", async (req, res) => {
+router.get("/goods/:goodsId", authMiddleware, async (req, res) => {
   const { goodsId } = req.params;
 
-  const [detail] = await Goods.find({ goodsId: Number(goodsId) });
+  const [detail] = await Goods.find({ goodsId: goodsId });
 
   // const [detail] = goods.filter((item) => item.goodsId === Number(goodsId))
   res.json({ goods: detail });
@@ -77,18 +101,20 @@ router.get("/goods/:goodsId", async (req, res) => {
 // })
 
 // 장바구니에서 제품 삭제
-router.delete("/goods/:goodsId/cart", async (req, res) => {
+router.delete("/goods/:goodsId/cart", authMiddleware, async (req, res) => {
+  const { userId } = res.locals.user;
   const { goodsId } = req.params;
 
-  const existcarts = await Cart.find({ goodsId: Number(goodsId) });
+  const existcarts = await Cart.find({ userId, goodsId: goodsId });
   if (existcarts.length) {
-    await Cart.deleteOne({ goodsId: Number(goodsId) });
+    await Cart.deleteOne({ goodsId: goodsId });
   }
   res.json({ success: true });
 });
 
 // 장바구니 제품 수정
-router.put("/goods/:goodsId/cart", async (req, res) => {
+router.put("/goods/:goodsId/cart", authMiddleware, async (req, res) => {
+  const { userId } = res.locals.user;
   const { goodsId } = req.params;
   const { quantity } = req.body;
 
@@ -98,12 +124,12 @@ router.put("/goods/:goodsId/cart", async (req, res) => {
       .json({ success: false, errMsg: "수량은 1이상으로 설정해주세요." });
   }
 
-  const existcarts = await Cart.find({ goodsId: Number(goodsId) });
+  const existcarts = await Cart.find({ userId, goodsId: goodsId });
   if (!existcarts.length) {
-    await Cart.create({ goodsId: Number(goodsId), quantity });
+    await Cart.create({ userId, goodsId: goodsId, quantity });
     // return res.status(400).json({success: false, errMsg:"장바구니에 해당 상품이 없습니다."})
   } else {
-    await Cart.updateOne({ goodsId: Number(goodsId) }, { $set: { quantity } });
+    await Cart.updateOne({ goodsId: goodsId }, { $set: { quantity } });
   }
 
   res.json({ success: true });
@@ -112,18 +138,17 @@ router.put("/goods/:goodsId/cart", async (req, res) => {
 // POST 메소드의 특징은 GET 메소드와는 다르게 body 라는 추가적인 정보를 담아 서버에 전달 할 수 있기 때문에
 // 정보값을 body라는 이름으로 넘겨줄 예정
 router.post("/goods", async (req, res) => {
-  const { goodsId, name, thumbnailUrl, category, price } = req.body;
+  const { name, thumbnailUrl, category, price } = req.body;
 
-  const goods = await Goods.find({ goodsId });
+  // const goods = await Goods.find();
 
-  if (goods.length) {
-    return res
-      .status(400)
-      .json({ success: false, errMsg: "이미 있는 데이터 입니다." });
-  }
+  // if (goods.length) {
+  //   return res
+  //     .status(400)
+  //     .json({ success: false, errMsg: "이미 있는 데이터 입니다." });
+  // }
 
   const createdGoods = await Goods.create({
-    goodsId,
     name,
     thumbnailUrl,
     category,
