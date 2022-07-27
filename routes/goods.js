@@ -24,7 +24,7 @@ router.get("/goods/cart", authMiddleware, async (req, res) => {
   const { userId } = res.locals.user;
   const cart = await Cart.findAll({
     where: { userId },
-  })
+  });
 
   const goodsIds = cart.map((c) => c.goodsId);
 
@@ -33,16 +33,15 @@ router.get("/goods/cart", authMiddleware, async (req, res) => {
     where: {
       goodsId: goodsIds,
     },
-  })
-    .then((goods) =>
-      goods.reduce(
-        (prev, g) => ({
-          ...prev,
-          [g.goodsId]: g,
-        }),
-        {}
-      )
-    );
+  }).then((goods) =>
+    goods.reduce(
+      (prev, g) => ({
+        ...prev,
+        [g.goodsId]: g,
+      }),
+      {}
+    )
+  );
 
   res.send({
     cart: cart.map((c) => ({
@@ -87,12 +86,10 @@ router.get("/goods/cart", authMiddleware, async (req, res) => {
 router.get("/goods/:goodsId", authMiddleware, async (req, res) => {
   const { goodsId } = req.params;
 
-  const [detail] = await Goods.findOne({
-    where: { goodsId },
-  });
+  const goods = await Goods.findByPk(goodsId);
 
   // const [detail] = goods.filter((item) => item.goodsId === Number(goodsId))
-  res.json({ goods: detail });
+  res.json({ goods });
 });
 
 // 상품 장바구니에 담기(원래 상품담기인데 put 으로 통일함)
@@ -119,8 +116,8 @@ router.delete("/goods/:goodsId/cart", authMiddleware, async (req, res) => {
       goodsId,
     },
   });
-  if (existcarts.length) {
-    await Cart.destroy();
+  if (existcarts) {
+    await existcarts.destroy();
   }
   res.json({ success: true });
 });
@@ -138,7 +135,7 @@ router.put("/goods/:goodsId/cart", authMiddleware, async (req, res) => {
   }
 
   const existcarts = await Cart.findOne({ where: { userId, goodsId } });
-  if (!existcarts.length) {
+  if (!existcarts) {
     await Cart.create({ userId, goodsId, quantity });
     // return res.status(400).json({success: false, errMsg:"장바구니에 해당 상품이 없습니다."})
   } else {
