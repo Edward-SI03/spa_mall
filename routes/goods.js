@@ -1,14 +1,19 @@
 const express = require("express");
 const router = express.Router();
-const Cart = require("../schemas/cart");
-const Goods = require("../schemas/goods");
+// const Cart = require("../schemas/cart");
+// const Goods = require("../schemas/goods");
+const { User, Goods, Cart } = require("../models/index");
+const { Op } = require("sequelize");
 const authMiddleware = require("../middlewares/auth-middleware");
 
 // 전체 상품 목록 보기
 router.get("/goods", authMiddleware, async (req, res) => {
   const { category } = req.query;
 
-  const goods = await Goods.find({ category });
+  const goods = await Goods.findAll({
+    order: [["goodsId", "desc"]],
+    where: category ? { category } : undefined,
+  });
   res.json({ goods: goods });
   // 키벨류 값이 같으면
   // res.json({goods:goods}) 로 작성가능(비할당 구조화, 비구조화)
@@ -17,17 +22,18 @@ router.get("/goods", authMiddleware, async (req, res) => {
 // 장바구니 상품보기
 router.get("/goods/cart", authMiddleware, async (req, res) => {
   const { userId } = res.locals.user;
-  const cart = await Cart.find({
-    userId,
-  }).exec();
+  const cart = await Cart.findAll({
+    where: { userId },
+  })
 
   const goodsIds = cart.map((c) => c.goodsId);
 
   // 루프 줄이기 위해 Mapping 가능한 객체로 만든것
-  const goodsKeyById = await Goods.find({
-    _id: { $in: goodsIds },
+  const goodsKeyById = await Goods.findAll({
+    where: {
+      goodsId: goodsIds,
+    },
   })
-    .exec()
     .then((goods) =>
       goods.reduce(
         (prev, g) => ({
@@ -81,7 +87,9 @@ router.get("/goods/cart", authMiddleware, async (req, res) => {
 router.get("/goods/:goodsId", authMiddleware, async (req, res) => {
   const { goodsId } = req.params;
 
-  const [detail] = await Goods.find({ _id: goodsId });
+  const [detail] = await Goods.findOne({
+    where: { goodsId },
+  });
 
   // const [detail] = goods.filter((item) => item.goodsId === Number(goodsId))
   res.json({ goods: detail });
@@ -105,14 +113,19 @@ router.delete("/goods/:goodsId/cart", authMiddleware, async (req, res) => {
   const { userId } = res.locals.user;
   const { goodsId } = req.params;
 
-  const existcarts = await Cart.find({ userId, goodsId: goodsId });
+  const existcarts = await Cart.findOne({
+    where: {
+      userId,
+      goodsId,
+    },
+  });
   if (existcarts.length) {
-    await Cart.deleteOne({ goodsId: goodsId });
+    await Cart.destroy();
   }
   res.json({ success: true });
 });
 
-// 장바구니 제품 수정
+// 장바구니 제품 추가 및 수정
 router.put("/goods/:goodsId/cart", authMiddleware, async (req, res) => {
   const { userId } = res.locals.user;
   const { goodsId } = req.params;
@@ -124,12 +137,12 @@ router.put("/goods/:goodsId/cart", authMiddleware, async (req, res) => {
       .json({ success: false, errMsg: "수량은 1이상으로 설정해주세요." });
   }
 
-  const existcarts = await Cart.find({ userId, goodsId: goodsId });
+  const existcarts = await Cart.findOne({ where: { userId, goodsId } });
   if (!existcarts.length) {
-    await Cart.create({ userId, goodsId: goodsId, quantity });
+    await Cart.create({ userId, goodsId, quantity });
     // return res.status(400).json({success: false, errMsg:"장바구니에 해당 상품이 없습니다."})
   } else {
-    await Cart.updateOne({ goodsId: goodsId }, { $set: { quantity } });
+    await Cart.update({ quantity }, { where: { goodsId } });
   }
 
   res.json({ success: true });

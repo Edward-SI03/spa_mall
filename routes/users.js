@@ -2,7 +2,9 @@ const express = require("express");
 const router = express.Router();
 const jwt = require("jsonwebtoken");
 const Joi = require("joi");
-const User = require("../schemas/user");
+// const  User  = require("../schemas/user");
+const { User } = require("../models/index");
+const { Op } = require("sequelize");
 const authMiddleware = require("../middlewares/auth-middleware");
 
 // 회원가입
@@ -23,8 +25,10 @@ router.post("/users", async (req, res) => {
       return;
     }
 
-    const existUsers = await User.find({
-      $or: [{ nickname }, { email }],
+    const existUsers = await User.findAll({
+      where: {
+        [Op.or]: [{ nickname }, { email }],
+      },
     });
 
     if (existUsers.length) {
@@ -33,8 +37,7 @@ router.post("/users", async (req, res) => {
         .send({ errorMessage: "이미 가입된 이메일 또는 닉네임이 있습니다." });
       return;
     }
-    const user = new User({ email, nickname, password });
-    await user.save();
+    await User.create({ email, nickname, password });
     res.status(201).send({});
   } catch (err) {
     console.log(err);
@@ -53,7 +56,7 @@ router.post("/auth", async (req, res) => {
   try {
     const { email, password } = await postAuthSchema.validateAsync(req.body);
 
-    const user = await User.findOne({ email, password });
+    const user = await User.findOne({ where: { email, password } });
 
     if (!user) {
       res.status(400).send({
