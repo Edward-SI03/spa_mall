@@ -1,4 +1,4 @@
-const mongoose = require("mongoose");
+const mongoose = require('mongoose');
 
 const schema = new mongoose.Schema({
   userId: {
@@ -15,4 +15,4 @@ const schema = new mongoose.Schema({
   },
 });
 
-module.exports = mongoose.model("Cart", schema);
+module.exports = mongoose.model('Cart', schema);

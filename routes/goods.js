@@ -1,17 +1,17 @@
-const express = require("express");
+const express = require('express');
 const router = express.Router();
 // const Cart = require("../schemas/cart");
 // const Goods = require("../schemas/goods");
-const { User, Goods, Cart } = require("../models/index");
-const { Op } = require("sequelize");
-const authMiddleware = require("../middlewares/auth-middleware");
+const { User, Goods, Cart } = require('../models/index');
+const { Op } = require('sequelize');
+const authMiddleware = require('../middlewares/auth-middleware');
 
 // 전체 상품 목록 보기
-router.get("/goods", authMiddleware, async (req, res) => {
+router.get('/goods', authMiddleware, async (req, res) => {
   const { category } = req.query;
 
   const goods = await Goods.findAll({
-    order: [["goodsId", "desc"]],
+    order: [['goodsId', 'desc']],
     where: category ? { category } : undefined,
   });
   res.json({ goods: goods });
@@ -20,7 +20,7 @@ router.get("/goods", authMiddleware, async (req, res) => {
 });
 
 // 장바구니 상품보기
-router.get("/goods/cart", authMiddleware, async (req, res) => {
+router.get('/goods/cart', authMiddleware, async (req, res) => {
   const { userId } = res.locals.user;
   const cart = await Cart.findAll({
     where: { userId },
@@ -83,7 +83,7 @@ router.get("/goods/cart", authMiddleware, async (req, res) => {
 // });
 
 // 제품 상세조회
-router.get("/goods/:goodsId", authMiddleware, async (req, res) => {
+router.get('/goods/:goodsId', authMiddleware, async (req, res) => {
   const { goodsId } = req.params;
 
   const goods = await Goods.findByPk(goodsId);
@@ -106,7 +106,7 @@ router.get("/goods/:goodsId", authMiddleware, async (req, res) => {
 // })
 
 // 장바구니에서 제품 삭제
-router.delete("/goods/:goodsId/cart", authMiddleware, async (req, res) => {
+router.delete('/goods/:goodsId/cart', authMiddleware, async (req, res) => {
   const { userId } = res.locals.user;
   const { goodsId } = req.params;
 
@@ -123,7 +123,7 @@ router.delete("/goods/:goodsId/cart", authMiddleware, async (req, res) => {
 });
 
 // 장바구니 제품 추가 및 수정
-router.put("/goods/:goodsId/cart", authMiddleware, async (req, res) => {
+router.put('/goods/:goodsId/cart', authMiddleware, async (req, res) => {
   const { userId } = res.locals.user;
   const { goodsId } = req.params;
   const { quantity } = req.body;
@@ -131,7 +131,7 @@ router.put("/goods/:goodsId/cart", authMiddleware, async (req, res) => {
   if (quantity < 1) {
     return res
       .status(400)
-      .json({ success: false, errMsg: "수량은 1이상으로 설정해주세요." });
+      .json({ success: false, errMsg: '수량은 1이상으로 설정해주세요.' });
   }
 
   const existcarts = await Cart.findOne({ where: { userId, goodsId } });
@@ -147,7 +147,7 @@ router.put("/goods/:goodsId/cart", authMiddleware, async (req, res) => {
 
 // POST 메소드의 특징은 GET 메소드와는 다르게 body 라는 추가적인 정보를 담아 서버에 전달 할 수 있기 때문에
 // 정보값을 body라는 이름으로 넘겨줄 예정
-router.post("/goods", async (req, res) => {
+router.post('/goods', async (req, res) => {
   const { name, thumbnailUrl, category, price } = req.body;
 
   // const goods = await Goods.find();
